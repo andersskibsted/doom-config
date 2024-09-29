@@ -146,6 +146,8 @@
       :localleader
       :desc "Open link in same window"
       "L" #'my/org-open-at-point-same-window)
+(after! fsharp-mode
+  (add-hook 'fsharp-mode-hook (lambda () (company-mode -1))))
 
 ;; Org-roam
 (use-package! org-roam
