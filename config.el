@@ -110,13 +110,16 @@
   ;; Sort by input history (no need to modify `corfu-sort-function').
   (with-eval-after-load 'savehist
     (corfu-history-mode 1)
-    (add-to-list 'savehist-additional-variables 'corfu-history)) )
+    (add-to-list 'savehist-additional-variables 'corfu-history)))
 
 (use-package! orderless
   :custom
   (completion-styles '(orderless basic))
   (completion-category-overrides '((file (styles basic partial-completion)))))
 
+;; Removing title bare
+;; (when (eq system-type 'darwin) ; macOS
+;;   (setq default-frame-alist '((undecorated . t))))
 
 ;; (use-package! eglot
 ;;   :hook (fsharp-mode . eglot-ensure))
@@ -137,12 +140,7 @@
 
 ;; (use-package! fsharp-mode-abbrev-table
 ;;   :hook (fsharp-mode . lsp))
-;; Org mode
-(defun my/org-open-at-point-same-window ()
-  "Open Org link at point in the current window."
-  (interactive)
-  (let ((org-link-frame-setup '((file . find-file))))
-    (org-open-at-point)))
+;; 
 
 (map! :map org-mode-map
       :localleader
@@ -150,7 +148,7 @@
       "L" #'my/org-open-at-point-same-window)
 
 ;; Org-roam
-(use-package org-roam
+(use-package! org-roam
   :ensure t
   :init
   (setq org-roam-v2-ack t)
@@ -180,18 +178,46 @@
   (org-roam-db-autosync-enable))
 
 
+ ;;(after! org
+ ;;  (add-hook 'org-mode-hook 'turn-on-org-cdlatex))
 
 ;; Angiv vinduets størrelse ved start
-(setq initial-frame-alist '((width . 180) (height . 60)))
+(setq initial-frame-alist '((width . 90) (height . 60)))
 ;;(setq python-shell-completion-native-enable 'nil)
 ;;
+(defun my/org-capture-daily-planner ()
+  "Prompt for a date and prepare a daily planner entry in the datetree."
+  (interactive)
+  (let ((date (org-read-date nil nil nil "Plan for: ")))
+    ;; Set the date for the capture entry
+    (org-capture-put :date date)
+    ;; Finalize the capture; the content will be set by the template
+    (org-capture-finalize)))
+
+
+
 
 
 ;; Org settings
 (global-set-key (kbd "C-c l") #'org-store-link)
 (global-set-key (kbd "C-c a") #'org-agenda)
 (global-set-key (kbd "C-c c") #'org-capture)
+;;(global-set-key (kbd "C-c c p") #'my/org-capture-daily-planner)
+
 (after! org
+  (setq org-capture-templates
+        '(("t" "Todo" entry (file+headline "~/Documents/org/inbox.org" "Tasks")
+           "* TODO %?\n  %U\n  %a")
+          ("d" "Dayplanner" entry
+          (file+datetree "~/Documents/org/agenda/dayplanner.org")
+           "Todays TODOs\n + Morgen %u \n  - Aflever\n  - Tossefit\n + Formiddag %u \n %? \n + Frokost %u \n\n + Eftermiddag %u \n\n + Eftermiddag 2 %u \n  - Hente \n  - Tossefit \n + Aften %u"
+           :time-prompt t)
+          ("a" "Add task to dayplanner" entry
+           (file+datetree "~/Documents/org/agenda/dayplanner.org")
+           "TODO %?"
+           :time-prompt t)))
+
+
   (setq org-tag-alist
         '(;;Places
           ("@hjem" . ?H)
@@ -205,21 +231,9 @@
           ;; Domæne
           ("@komponist" . ?K)
           ("@datalogi" . ?D)
-          ("@koncertarranger" . ?K)
-          ("@amager-electronic" . ?A)
-          ("@administration" . ?a)))
-  (setq org-agenda-files '("~/Documents/org/agenda/"))
-
-  (setq org-agenda-custom-commands
-        '(("k" "Komponist tasks for today"
-           ((tags-todo "@komponist+TIMESTAMP>=\"<today>\"+TIMESTAMP<=\"<today>\""
-                       ((org-agenda-overriding-header "Komponist TODOs for Today")))))
-          ("w" "kompo TODOs" tags-todo "+@komponist"
-           ((org-agenda-overriding-header "kompo TODOs")))))
-  (setq org-link-frame-setup
-      '((file . find-file-other-window)))
-  
-)
+          ("@koncertarranger" . ?K)))
+;; Set the directory where your Org files are located
+  (setq org-agenda-files (directory-files-recursively "~/Documents/org/agenda/" "\\.org$")))
 
 (map! :map org-mode-map
       :n "C-t" #'org-set-tags-command)
@@ -227,3 +241,33 @@
 ;; LaTex config
 
 (setq +latex-viewers '(pdf-tools))
+
+
+(setq default-input-method "danish-postfix")
+(map! :leader
+      (:prefix ("t" . "toggle")
+       :desc "Toggle input method" "i" #'toggle-input-method))
+(add-hook 'text-mode-hook (lambda () (set-input-method "danish-postfix")))
+
+
+(after! gptel
+  (setq
+   gptel-model "mistral:latest"
+   gptel-backend (gptel-make-ollama "Ollama"
+                   :host "localhost:11434"
+                   :stream t
+                   :models '("llama3.1:latest"))))
+
+(use-package! evil-colemak-basics
+  :init
+  (setq evil-colemak-basics-layout-mod 'mod-dh)
+  :config
+  (global-evil-colemak-basics-mode))
+
+(map! :map dired-mode-map
+      :localleader
+      :desc "Open vterm in current directory"
+      "v" #'+vterm/here)
+(after! vterm
+  (map! :map vterm-mode-map
+        :i "C-y" #'vterm-yank))
