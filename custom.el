@@ -16,10 +16,13 @@
                                          "LLDB::Run Fauxgrep MT" :args
                                          '("-n" "5" "for" "test"))))))
  '(safe-local-variable-values
-   '((eval with-eval-after-load 'dap-mode
+   '((haskell-process-use-ghci . t) (haskell-indent-spaces . 4)
+     (eval with-eval-after-load 'dap-mode
       (dap-register-debug-template "LLDB::Run Peer"
-       (list :type "lldb-vscode" :cwd "${workspaceFolder}" :request "launch"
-             :program "${workspaceFolder}/peer.c" :name "LLDB::Run Fauxgrep MT"))))))
+                                   (list :type "lldb-vscode" :cwd
+                                         "${workspaceFolder}" :request "launch"
+                                         :program "${workspaceFolder}/peer.c"
+                                         :name "LLDB::Run Fauxgrep MT"))))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

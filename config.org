@@ -92,6 +92,8 @@
 * PATH
 #+begin_src emacs-lisp :tangle yes
 (use-package! exec-path-from-shell
+  :init
+  (setq exec-path-from-shell-arguments '("-1"))
   :config
   (exec-path-from-shell-initialize))
 #+end_src
@@ -108,6 +110,21 @@
 (add-hook 'text-mode-hook (lambda () (set-input-method "danish-postfix")))
 #+end_src
 * ui
+** company
+#+begin_src emacs-lisp :tangle yes
+(after! company
+  (defun my/company-yasnippet-or-completion ()
+    "Try yasnippet expansion first; if no snippet matches, fall back to company completion."
+    (interactive)
+    (or (my/do-yas-expand)
+        (company-complete-common)))
+
+  (defun my/do-yas-expand ()
+    (let ((yas-fallback-behavior 'return-nil))
+      (yas-expand)))
+
+  (define-key company-active-map [tab] #'my/company-yasnippet-or-completion))
+#+end_src
 ** vertico
 #+begin_src emacs-lisp :tangle yes
 (map! :after vertico

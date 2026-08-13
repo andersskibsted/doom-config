@@ -78,6 +78,8 @@
 ;;(setq gcmh-high-cons-threshold (* 256 1024 1024)) ; 256MB
 
 (use-package! exec-path-from-shell
+  :init
+  (setq exec-path-from-shell-arguments '("-1"))
   :config
   (exec-path-from-shell-initialize))
 
@@ -85,6 +87,19 @@
 
 ;; ae, oe og aa
 (add-hook 'text-mode-hook (lambda () (set-input-method "danish-postfix")))
+
+(after! company
+  (defun my/company-yasnippet-or-completion ()
+    "Try yasnippet expansion first; if no snippet matches, fall back to company completion."
+    (interactive)
+    (or (my/do-yas-expand)
+        (company-complete-common)))
+
+  (defun my/do-yas-expand ()
+    (let ((yas-fallback-behavior 'return-nil))
+      (yas-expand)))
+
+  (define-key company-active-map [tab] #'my/company-yasnippet-or-completion))
 
 (map! :after vertico
       :map vertico-map
