@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: case expression
+# key: case
+# expand-env: ((yas-indent-line 'fixed))
+# --
+case ${1:expr} of
+  ${2:Pattern} -> ${3:result}
+  $0

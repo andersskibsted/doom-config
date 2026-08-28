@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: t; -*-
 ;; -*- no-byte-compile: t; -*-
 ;;; $DOOMDIR/packages.el
 
@@ -55,7 +56,6 @@
 ;;
 (package! bison-mode)
 (package! tldr)
-;; (package! fasto-mode)
 ;; arv PATH fra shell
 (package! exec-path-from-shell)
 ;; typst
@@ -84,3 +84,8 @@
 
 ;; gptel
 (package! gptel)
+
+;; emacs package dev
+(package! package-lint)
+(package! buttercup)
+

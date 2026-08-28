@@ -148,7 +148,7 @@
        ;;json              ; At least it ain't XML
        ;;janet             ; Fun fact: Janet is me!
        ;;(java +lsp)       ; the poster child for carpal tunnel syndrome
-       (javascript +typescript +tsx +lsp +prettier)        ; all(hope(abandon(ye(who(enter(here))))))
+       (javascript +tree-sitter +typescript +tsx +lsp +prettier)        ; all(hope(abandon(ye(who(enter(here))))))
        ;;julia             ; a better, faster MATLAB
        ;;kotlin            ; a better, slicker Java(Script)
        ;;latex             ; writing papers in Emacs has never been so fun
@@ -158,8 +158,8 @@
        markdown          ; writing docs for people to ignore
        ;;nim               ; python + lisp at the speed of c
        ;;nix               ; I hereby declare "nix geht mehr!"
-       ;;ocaml             ; an objective camel
-       (org +roam2 +babel +pretty +latex +gnuplot) ; organize your plain life in plain text
+       (ocaml +lsp +dune)             ; an objective camel
+       (org +roam +babel +pretty +latex +gnuplot +jupyter +pandoc +dragndrop) ; organize your plain life in plain text
        ;;php               ; perl's insecure younger brother
        ;;plantuml          ; diagrams for confusing people more
        ;;graphviz          ; diagrams for confusing yourself even more

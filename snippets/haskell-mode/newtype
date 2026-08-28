@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: newtype
+# key: newtype
+# expand-env: ((yas-indent-line 'fixed))
+# --
+newtype ${1:TypeName} = $1
+  { ${2:unwrap$1} :: ${3:BaseType}
+  } deriving (${4:Show, Eq})

@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# name: module header
+# key: module
+# expand-env: ((yas-indent-line 'fixed))
+# --
+module ${1:`(file-name-base (or (buffer-file-name) "Main"))`} (
+    $2
+  ) where
+
+$0

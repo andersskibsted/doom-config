@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: do block
+# key: do
+# expand-env: ((yas-indent-line 'fixed))
+# --
+do
+  ${1:action}
+  $0

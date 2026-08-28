@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: typst block
+# key: typst
+# --
+#+begin_src typst :results file
+$0
+#+end_src

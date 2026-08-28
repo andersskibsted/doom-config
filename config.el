@@ -77,6 +77,29 @@
 
 ;;(setq gcmh-high-cons-threshold (* 256 1024 1024)) ; 256MB
 
+(defun +my/setup-default-workspace ()
+  "Opret standard-workspace med faste buffere ved opstart."
+  (interactive)
+;;  (+workspace/rename "main")   ; kun ÉT argument: det nye navn
+  ;; (find-file "~/dotfiles/README.md")
+  (split-window-right)
+  (find-file "~/Library/Mobile Documents/com~apple~CloudDocs/org/org-roam/20260817094438-keybindings_memorize_quick_reference.org")
+  (+evil/window-move-right))
+
+(run-with-idle-timer 1.0 nil #'+my/setup-default-workspace)
+;; (after! persp-mode
+;;   (add-hook 'window-setup-hook #'+my/setup-default-workspace))
+
+
+;; (defun +my/setup-default-workspace ()
+;;   "Opret standard-workspace med faste buffere ved opstart."
+;;   (+workspace/rename (+workspace-current-name) "main")
+;; ;;  (find-file "~/.config/doom/config.org")
+;;   (split-window-right)
+;;   (find-file "~/Library/Mobile Documents/com~apple~CloudDocs/org/org-roam/20260817094438-keybindings_memorize_quick_reference.org"))
+;; (add-hook 'window-setup-hook #'+my/setup-default-workspace)
+;; (add-hook 'doom-after-init-hook #'+my/setup-default-workspace)
+
 (use-package! exec-path-from-shell
   :init
   (setq exec-path-from-shell-arguments '("-1"))
@@ -87,6 +110,10 @@
 
 ;; ae, oe og aa
 (add-hook 'text-mode-hook (lambda () (set-input-method "danish-postfix")))
+
+(map! :leader
+      (:prefix ("k" . "kill commands")
+      :desc "Kill current buffer" "k" #'kill-current-buffer))
 
 (after! company
   (defun my/company-yasnippet-or-completion ()
@@ -190,6 +217,8 @@
 
 (setq display-line-numbers t)
 (setq org-directory "~/org/")
+(after! org
+  (add-hook 'org-mode-hook (lambda () (rainbow-delimiters-mode -1)) 100))
 
 (setq org-capture-templates
       '(("t" "Tasks")
@@ -240,6 +269,29 @@
 (after! org-roam
   (setq org-roam-directory "~/Documents/org/org-roam/"))
 
+(after! org
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((emacs-lisp . t)
+     (python . t)
+     (jupyter . t))))
+
+(setq org-babel-default-header-args:jupyter-python
+      '((:session . "ml")
+        (:kernel . "python3")
+        (:async . "yes")))
+(load! "lisp/ob-typst")
+
+(after! org
+  (add-to-list 'org-babel-load-languages '(typst . t))
+  (org-babel-do-load-languages 'org-babel-load-languages org-babel-load-languages)
+  (add-to-list 'org-src-lang-modes '("typst" . typst-ts)))
+
+
+(map! :map org-mode-map
+      :localleader
+      :desc "Preview typst block" "j" #'ob-typst-preview-current-block)
+
 ;; Typst / tinymist
 (after! lsp-mode
   :config
@@ -269,6 +321,15 @@
   (setq lsp-disabled-clients '(ts-query-ls))
   (setq lsp-pyright-auto-import-completions t
         lsp-pyright-diagnostic-mode "workspace"))
+
+(defun lsp-workspace-folders-remove-matching (pattern)
+  "Fjern alle lsp workspace-mapper, hvis sti matcher PATTERN (regex)."
+  (interactive "sFjern mapper der matcher regex: ")
+  (dolist (folder (lsp-session-folders (lsp-session)))
+    (when (string-match-p pattern folder)
+      (lsp-workspace-folders-remove folder)))
+  (message "Mapper matchende '%s' fjernet" pattern))
+
 
 (after! lsp-ui
   :config
@@ -318,6 +379,11 @@
         avy-keys '(?s ?n ?t ?h ?a ?e ?i ?r))
   )
 
+(map! :leader
+      (:prefix ("=" . "calc")
+      :desc "Quick calc in minibuffer" "q" #'quick-calc
+      :desc "Open calc" "c" #'calc))
+
 (after! treesit
  :config
     ;; Remap major modes to tree-sitter versions
@@ -364,28 +430,257 @@
      commentary
      additional-wrap)))
 
-(use-package! dap-mode
+;; (use-package! dap-mode
+;;   :config
+;;   (dap-mode 1)
+;;   (dap-ui-mode 1)
+;;   (dap-tooltip-mode 1)
+;;   (tooltip-mode 1)
+;;   (dap-ui-controls-mode 1))
+
+;; ;; Sprog-specifikke adapters
+;; (after! dap-mode
+;;   (require 'dap-python)    ; Python
+;;   (require 'dap-node)      ; Node.js
+;;   (require 'dap-lldb)      ; C/C++/Rust
+;;   (setq dap-python-debugger 'debugpy))
+
+;; (map! :after dap-mode
+;;       :map dap-mode-map
+;;       "<<f5>>" 'dap-debug
+;;       "<f6>" 'dap-disconnect
+;;       "<f9>" 'dap-breakpoint-toggle
+;;       "<f10>" 'dap-next)
+
+(use-package! dape
   :config
-  (dap-mode 1)
-  (dap-ui-mode 1)
-  (dap-tooltip-mode 1)
-  (tooltip-mode 1)
-  (dap-ui-controls-mode 1))
+  ;; debugpy er allerede kendt af dape's indbyggede configs
+  (setq dape-buffer-window-arrangement 'right))
 
-;; Sprog-specifikke adapters
-(after! dap-mode
-  (require 'dap-python)    ; Python
-  (require 'dap-node)      ; Node.js
-  (require 'dap-go)        ; Go
-  (require 'dap-lldb))     ; C/C++/Rust
+(after! dape
+  (add-to-list 'dape-configs
+               `(debugpy
+                 modes (python-mode python-ts-mode)
+                 command (lambda ()
+                           (let ((venv-python (expand-file-name ".venv/bin/python" (dape-cwd))))
+                             (if (file-executable-p venv-python)
+                                 venv-python
+                               "python3")))
+                 command-args ("-m" "debugpy.adapter" "--host" "127.0.0.1" "--port" :autoport)
+                 port :autoport
+                 :type "python"
+                 :request "launch"
+                 :cwd dape-cwd-fn
+                 :program dape-buffer-default
+                 :justMyCode nil
+                 :console "integratedTerminal"))
+  (add-to-list 'dape-configs
+               `(debugpy-pytest
+                 modes (python-mode python-ts-mode)
+                 command (lambda ()
+                           (let ((venv-python (expand-file-name ".venv/bin/python" (dape-cwd))))
+                             (if (file-executable-p venv-python) venv-python "python3")))
+                 command-args ("-m" "debugpy.adapter" "--host" "127.0.0.1" "--port" :autoport)
+                 port :autoport
+                 :type "python"
+                 :request "launch"
+                 :cwd dape-cwd-fn
+                 :module "pytest"
+                 :args (lambda ()
+                         (let* ((default-test (which-function))
+                                (test-name (read-string
+                                            (format "Testnavn (default: %s): " (or default-test "alle"))
+                                            nil nil default-test)))
+                           (if (or (null test-name) (string-empty-p test-name))
+                               ["-x" "-v"]
+                             (vector "-x" "-v" "-k" test-name))))
+                 :justMyCode nil))
+  (add-to-list 'dape-configs
+               ;; Haskell debugger hdb
+               `(hdb
+                 modes (haskell-mode haskell-ts-mode)
+                 command "hdb"
+                 command-args ("server" "--port" :autoport)
+                 port :autoport
+                 :type "haskell-debugger"
+                 :request "launch"
+                 :entryFile dape-buffer-default
+                 :entryPoint "main"
+                 :projectRoot dape-cwd-fn
+                 :entryArgs []
+                 :extraGhcArgs [])))
 
-(map! :after dap-mode
-      :map dap-mode-map
-      "<<f5>>" 'dap-debug
-      "<f6>" 'dap-disconnect
-      "<f9>" 'dap-breakpoint-toggle
-      "<f10>" 'dap-next)
+;; :args (lambda ()
+;;         (let ((test-name (read-string "Testnavn (tomt = alle): ")))
+;;           (if (string-empty-p test-name)
+;;               ["-x" "-v"]
+;;             (vector "-x" "-v" "-k" test-name))))
+;; :justMyCode nil)))
 
+;; (add-to-list 'dape-configs
+;;              `(debugpy-pytest
+;;                modes (python-mode python-ts-mode)
+;;                command (lambda ()
+;;                          (let ((venv-python (expand-file-name ".venv/bin/python" (dape-cwd))))
+;;                            (if (file-executable-p venv-python) venv-python "python3")))
+;;                command-args ("-m" "debugpy.adapter" "--host" "127.0.0.1" "--port" :autoport)
+;;                port :autoport
+;;                :type "python"
+;;                :request "launch"
+;;                :cwd dape-cwd-fn
+;;                :module "pytest"
+;;                :args ["-x" "-v"]
+;;                :justMyCode nil)))
+
+(map! :leader
+      :prefix ("d" . "dape")
+      "d" #'dape
+      "n" #'dape-next
+      "i" #'dape-step-in
+      "o" #'dape-step-out
+      "c" #'dape-continue
+      "b" #'dape-breakpoint-toggle
+      "B" #'dape-breakpoint-remove-all
+      "r" #'dape-restart
+      "q" #'dape-quit)
+
+(repeat-mode 1)
+(defvar +workspace-repeat-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "]" #'+workspace/switch-right)
+    (define-key map "[" #'+workspace/switch-left)
+    map)
+  "Repeat-map til at cykle mellem workspaces uden gentaget SPC TAB-præfiks.")
+
+(dolist (cmd '(+workspace/switch-right +workspace/switch-left))
+  (put cmd 'repeat-map '+workspace-repeat-map))
+
+(use-package! hydra)
+
+(after! (dape hydra)
+  (defhydra hydra-dape (:color pink :hint nil)
+    "
+^Dape^
+------------------------------------------------
+_n_: Next      _e_: Eval        _Q_: Disconnect
+_i_: Step In
+_o_: Step Out
+_c_: Continue
+_r_: Restart
+"
+    ("n" #'dape-next)
+    ("i" #'dape-step-in)
+    ("o" #'dape-step-out)
+    ("c" #'dape-continue)
+    ("e" #'dape-evaluate-expression)
+    ("r" #'dape-restart)
+    ("q" nil "Quit" :color blue)
+    ("Q" #'dape-quit :color blue)))
+
+(map! :leader
+      :prefix ("d" . "dape")
+      "h" #'hydra-dape/body)
+
+(after! (org hydra)
+  (defhydra hydra-org-nav (:color pink :hint nil)
+    "
+^Org navigation^
+------------------------------------------------
+_n_: next heading    _TAB_: cycle fold
+_p_: prev heading    _S-TAB_: cycle all
+_u_: up level
+"
+    ("n" org-next-visible-heading)
+    ("p" org-previous-visible-heading)
+    ("u" outline-up-heading)
+    ("TAB" org-cycle)
+    ("S-TAB" org-shifttab)
+    ("q" nil "quit" :color blue))
+
+  (defhydra hydra-org-babel (:color pink :hint nil)
+    "
+^Org Babel^
+------------------------------------------------
+_e_: eval block    _n_: next block
+_s_: eval subtree   _p_: prev block
+_c_: clear result
+"
+    ("e" org-babel-execute-src-block)
+    ("n" org-babel-next-src-block)
+    ("p" org-babel-previous-src-block)
+    ("s" org-babel-execute-subtree)
+    ("c" org-babel-remove-result)
+    ("q" nil "quit" :color blue)))
+
+(after! hydra
+  (defhydra hydra-window (:color pink :hint nil)
+    "
+^Window^
+------------------------------------------------
+_h_: ←    _j_: ↓    _k_: ↑    _l_: →
+_H_: shrink h  _L_: grow h
+_J_: shrink v  _K_: grow v
+_s_: split h   _v_: split v
+_d_: delete
+"
+    ("h" windmove-left)
+    ("j" windmove-down)
+    ("k" windmove-up)
+    ("l" windmove-right)
+    ("H" shrink-window-horizontally)
+    ("L" enlarge-window-horizontally)
+    ("J" shrink-window)
+    ("K" enlarge-window)
+    ("s" split-window-below)
+    ("v" split-window-right)
+    ("d" delete-window)
+    ("q" nil "quit" :color blue))
+
+  (defhydra hydra-zoom (:color red)
+    "zoom"
+    ("+" text-scale-increase "in")
+    ("-" text-scale-decrease "out")
+    ("0" (text-scale-set 0) "reset")
+    ("q" nil "quit" :color blue))
+
+  (defhydra hydra-multiple-cursors (:color pink :hint nil)
+    "
+^Multiple cursors^
+------------------------------------------------
+_n_: next like this    _p_: prev like this
+_N_: make cursor and next line
+_d_: make and goto next match
+_D_: make and goto prev match
+"
+    ("n" evil-mc-make-and-goto-next-cursor)
+    ("N" evil-mc-make-cursor-and-move-next-line)
+    ("p" evil-mc-make-cursor-and-move-prev-line)
+    ("d" evil-mc-make-and-goto-next-match)
+    ("D" evil-mc-make-and-goto-prev-match)
+    ("q" nil "quit" :color blue)))
+
+(map! :leader
+      :desc "Zoom hydra" "z" #'hydra-zoom/body)
+(map! :leader
+      :prefix ("H" . "hydra toggles")
+      :desc "window management" "w" #'hydra-window/body
+      :desc "org navigation" "o" #'hydra-org-nav/body
+      :desc "org babel" "b" #'hydra-org-babel/body
+      :desc "multiple cursors" "c" #'hydra-multiple-cursors/body)
+
+(after! projectile
+  (setq projectile-globally-ignored-directories
+        (append '(".venv" "dist-newstyle" ".stack-work" "node_modules" ".mypy_cache" "__pycache__")
+                projectile-globally-ignored-directories))
+  (projectile-register-project-type 'uv-python '("pyproject.toml")
+                                    :compile "uv sync"
+                                    :test "uv run pytest"
+                                    :run "uv run python main.py")
+  (setq +workspaces-on-switch-project-behavior t))
+
+
+
+;;; -*- lexical-binding: t; -*-
 ;; Typst mode setup
 (use-package! typst-ts-mode
   :mode "\\.typ\\'"
@@ -418,11 +713,28 @@
   :config
   (setq typst-preview-autostart t
         typst-preview-open-browser-automatically t)
-  (add-hook 'typst-ts-mode-hook #'typst-preview-mode)
+  (defun +typst-preview-mode-maybe ()
+    "Aktivér typst-preview-mode, medmindre vi er i en org-src edit-buffer
+eller org's midlertidige fontification-buffer."
+    (unless (or (bound-and-true-p org-src-mode)
+                (string-prefix-p " *org-src-fontification:" (buffer-name)))
+      (typst-preview-mode 1)))
+  (add-hook 'typst-ts-mode-hook #'+typst-preview-mode-maybe)
   :custom
   (typst-preview-browse "default")
   (typst-prieview-invert-colors "no")
   (typst-preview-executable "tinymist"))
+
+;; (use-package! typst-preview
+;;   :after typst-ts-mode
+;;   :config
+;;   (setq typst-preview-autostart t
+;;         typst-preview-open-browser-automatically t)
+;;   (add-hook 'typst-ts-mode-hook #'typst-preview-mode)
+;;   :custom
+;;   (typst-preview-browse "default")
+;;   (typst-prieview-invert-colors "no")
+;;   (typst-preview-executable "tinymist"))
 
 ;; LSP setup for Typst
 
@@ -494,6 +806,26 @@
          :desc "Dedicated toggle" "t" #'multi-vterm-dedicated-toggle
          :desc "Project vterm" "p" #'multi-vterm-project))
 
+(defun org-babel-remove-all-results ()
+  "Fjern alle #+RESULTS i hele bufferen."
+  (interactive)
+  (org-babel-map-src-blocks nil
+    (org-babel-remove-result)))
+
+(map! :map org-mode-map
+      :leader
+      (:prefix ("j" . "jupyter")
+       :desc "Eval block"            "e" #'org-babel-execute-src-block
+       :desc "Eval subtree"          "s" #'org-babel-execute-subtree
+       :desc "Eval buffer"           "b" #'org-babel-execute-buffer
+       :desc "Open REPL for block"   "o" #'jupyter-org-interaction-mode
+       :desc "Restart kernel"        "r" #'jupyter-repl-restart-kernel
+       :desc "Interrupt kernel"      "i" #'jupyter-repl-interrupt-kernel
+       :desc "Open/switch to REPL"   "o" #'jupyter-repl-pop-to-buffer
+       :desc "Run new REPL"          "R" #'jupyter-run-repl
+       :desc "Clear result at point" "c" #'org-babel-remove-result
+       :desc "Clear all results"     "C" #'org-babel-remove-all-results))
+
 (use-package! smalltalk-mode
   :mode "\\.st\\'"
   :config
@@ -524,6 +856,16 @@
       :localleader
       "h" #'my/gst-lookup)
 
+(map! :localleader
+      :map tuareg-mode-map
+      (:prefix ("s" . "utop/repl")
+               :desc "Kill utop" "k" #'utop-kill
+               :desc "Start utop" "s" #'utop
+               :desc "Send input to utop" "i" #'utop-eval-input
+               :desc "Send phrase to utop" "p" #'utop-eval-phrase
+               :desc "Send region to utop" "r" #'utop-eval-region
+               :desc "Send buffer to utop" "b" #'utop-eval-buffer))
+
 (after! rustic
   (setq rustic-lsp-client 'lsp-mode)
   ;;(setq rustic-format-on-save t)       ; kør rustfmt ved gem
@@ -539,16 +881,43 @@
       lsp-rust-analyzer-display-closure-return-type-hints "always"
       lsp-rust-analyzer-display-parameter-hints t)
 
+;; Skarpere flycheck for elisp: brug package-lint + checkdoc sammen
+;;(use-package! package-lint
+;;  :defer t)
+
+;;(use-package! package-lint-flymake
+;;  :after package-lint
+;;  :hook (emacs-lisp-mode . package-lint-flymake-setup))
+;; (use-package! package-lint-flymake
+;;  :hook (emacs-lisp-mode . package-lint-flymake-setup))
+
+;; Sørg for at checkdoc kører automatisk (docstring-konventioner)
+(add-hook 'emacs-lisp-mode-hook #'checkdoc-minor-mode)
+
+;; Gør eldoc lidt mere "hover-agtig": vis altid i minibuffer
+(setq eldoc-echo-area-use-multiline-p t)
+
+;; ;; God vane: lexical-binding i alle nye .el-filer
+;; (add-hook 'emacs-lisp-mode-hook
+;;           (lambda ()
+;;             (unless (string-match-p "lexical-binding" (buffer-string))
+;;               (save-excursion
+;;                 (goto-char (point-min))
+;;                 (insert ";;; -*- lexical-binding: t; -*-\n")))))
+
+;; Bind package-lint til en hurtig tast
+(map! :map emacs-lisp-mode-map
+      :localleader
+      "l" #'package-lint-current-buffer)
+
 (use-package! gptel
   :config
-  (setq gptel-model 'mistral:latest
-        gptel-backend (gptel-make-ollama "Ollama"
-                                         :host "localhost:11434"
-                                         :stream t
-                                         :models '(mistral:latest
-                                                   codellama:latest
-                                                   llama3.2:latest
-                                                   deepseek-coder-v2:latest))))
+  (setq gptel-backend (gptel-make-ollama "Ollama"
+                        :host "localhost:11434"
+                        :stream t
+                        :models '(qwen3.6:27b qwen3:14b))
+        gptel-model 'qwen3:14b))
+
 ;; Aktiver gptel-mode automatisk i relevante modes
 ;;(add-hook 'prog-mode-hook #'gptel-mode)
 ;; (add-hook 'text-mode-hook #'gptel-mode)
@@ -556,37 +925,48 @@
 
 ;; Keybindings til gptel
 (map! :leader
-      :desc "GPTel chat" "v w" #'gptel
-      :desc "Send region" "v s" #'gptel-send
-      :desc "Brug Mistral" "v m" #'gptel-use-mistral
-      :desc "Brug CodeLlama" "v c" #'gptel-use-codellama
-      :desc "Brug Llama 3.2" "v l" #'gptel-use-llama3
-      :desc "Brug DeepSeek Coder v2 " "v d" #'gptel-use-deepseekcoder)
+      (:prefix ("v" . "gptel")
+       :desc "GPTel chat" "w" #'gptel
+       :desc "Send region" "s" #'gptel-send
+       :desc "Brug qwen3.6:27b" "m" #'gptel-use-qwen3627
+       :desc "Brug qwen3:14b" "c" #'gptel-use-qwen314
+       :desc "Toggle visible reasoning" "v" #'gptel-toggle-reasoning))
 
+(defmacro gptel-defmodel (name model)
+  "Definér en interaktiv funktion, der skifter gptel-model til MODEL."
+  `(defun ,name ()
+     ,(format "Skift gptel-model til %s." model)
+     (interactive)
+     (setq gptel-model ',model)
+     (message "Skiftet til %s" ',model)))
 
-(defun gptel-use-mistral ()
-  "Skift til Mistral model"
+(gptel-defmodel gptel-use-qwen3627  qwen3.6:27b)
+(gptel-defmodel gptel-use-qwen314 qwen3:14b)
+
+(setq gptel-include-reasoning nil)
+
+(defun gptel-toggle-reasoning ()
+  "Cykl gptel's reasoning-visning: skjult → vist → separat buffer → skjult."
   (interactive)
-  (setq gptel-model "mistral:latest")
-  (message "Skiftet til Mistral"))
+  (setq gptel-include-reasoning
+        (pcase gptel-include-reasoning
+          ('nil t)
+          ('t 'other-buffer)
+          ('other-buffer nil)
+          (_ nil)))
+  (message "gptel reasoning: %s" gptel-include-reasoning))
 
-(defun gptel-use-codellama ()
-  "Skift til CodeLlama model"
-  (interactive)
-  (setq gptel-model "codellama:latest")
-  (message "Skiftet til CodeLlama"))
+;; (defun gptel-use-qwen3627 ()
+;;   "Skift til qwen3.6:27b model"
+;;   (interactive)
+;;   (setq gptel-model 'qwen3.6:27b)
+;;   (message "Skiftet til qwen3.6:27b"))
 
-(defun gptel-use-llama3 ()
-  "Skift til CodeLlama model"
-  (interactive)
-  (setq gptel-model "llama3.2:latest")
-  (message "Skiftet til Llama 3.2"))
-
-(defun gptel-use-deepseekcoder ()
-  "Skift til CodeLlama model"
-  (interactive)
-  (setq gptel-model "deepseek-coder-v2:latest")
-  (message "Skiftet til DeepSeek Coder"))
+;; (defun gptel-use-qwen314 ()
+;;   "Skift til qwen3:14b model"
+;;   (interactive)
+;;   (setq gptel-model 'qwen3:14b)
+;;   (message "Skiftet til qwen3:14b"))
 
 ;; Kobl TSX-filer til web-mode
 ;;(add-to-list 'auto-mode-alist '("\\.tsx\\'" . web-mode))

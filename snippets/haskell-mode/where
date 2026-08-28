@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: where clause
+# key: where
+# expand-env: ((yas-indent-line 'fixed))
+# --
+where
+  ${1:helper} = $0

@@ -1,0 +1,8 @@
+# -*- mode: snippet -*-
+# name: function with type signature
+# key: fun
+# expand-env: ((yas-indent-line 'fixed))
+# condition: t
+# --
+${1:functionName} :: ${2:a} -> ${3:b}
+$1 $4 = $0

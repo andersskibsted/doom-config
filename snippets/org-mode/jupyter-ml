@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: jupyter-mla block
+# key: jupyter-mla
+# --
+#+begin_src jupyter-python :session ${1:session-name} :kernel ml
+$0
+#+end_src
