@@ -86,7 +86,7 @@
   (find-file "~/Library/Mobile Documents/com~apple~CloudDocs/org/org-roam/20260817094438-keybindings_memorize_quick_reference.org")
   (+evil/window-move-right))
 
-(run-with-idle-timer 1.0 nil #'+my/setup-default-workspace)
+;;(run-with-idle-timer 1.0 nil #'+my/setup-default-workspace)
 ;; (after! persp-mode
 ;;   (add-hook 'window-setup-hook #'+my/setup-default-workspace))
 
@@ -110,6 +110,8 @@
 
 ;; ae, oe og aa
 (add-hook 'text-mode-hook (lambda () (set-input-method "danish-postfix")))
+
+
 
 (map! :leader
       (:prefix ("k" . "kill commands")
@@ -214,6 +216,10 @@
 (add-hook 'clojure-mode #'prism-mode)
 (add-hook 'python-mode-hook #'prism-whitespace-mode)
 ;;(add-hook 'prog-mode-hook #'prism-comments-mode)
+
+;; Cycle through workspaces
+(map! :desc "Previous workspace" "s-[" #'+workspace/switch-left
+      :desc "Next workspace" "s-]" #'+workspace/switch-right)
 
 (setq display-line-numbers t)
 (setq org-directory "~/org/")
@@ -713,17 +719,27 @@ _D_: make and goto prev match
   :config
   (setq typst-preview-autostart t
         typst-preview-open-browser-automatically t)
-  (defun +typst-preview-mode-maybe ()
-    "Aktivér typst-preview-mode, medmindre vi er i en org-src edit-buffer
-eller org's midlertidige fontification-buffer."
-    (unless (or (bound-and-true-p org-src-mode)
-                (string-prefix-p " *org-src-fontification:" (buffer-name)))
-      (typst-preview-mode 1)))
-  (add-hook 'typst-ts-mode-hook #'+typst-preview-mode-maybe)
   :custom
   (typst-preview-browse "default")
-  (typst-prieview-invert-colors "no")
+  (typst-preview-invert-colors "no")
   (typst-preview-executable "tinymist"))
+
+;; (use-package! typst-preview
+;;   :after typst-ts-mode
+;;   :config
+;;   (setq typst-preview-autostart t
+;;         typst-preview-open-browser-automatically t)
+;;   (defun +typst-preview-mode-maybe ()
+;;     "Aktivér typst-preview-mode, medmindre vi er i en org-src edit-buffer
+;; eller org's midlertidige fontification-buffer."
+;;     (unless (or (bound-and-true-p org-src-mode)
+;;                 (string-prefix-p " *org-src-fontification:" (buffer-name)))
+;;       (typst-preview-mode 1)))
+;;   (add-hook 'typst-ts-mode-hook #'+typst-preview-mode-maybe)
+;;   :custom
+;;   (typst-preview-browse "default")
+;;   (typst-prieview-invert-colors "no")
+;;   (typst-preview-executable "tinymist"))
 
 ;; (use-package! typst-preview
 ;;   :after typst-ts-mode
@@ -740,6 +756,11 @@ eller org's midlertidige fontification-buffer."
 
 (after! smartparens
   (sp-local-pair 'typst-ts-mode "$" "$"))
+
+;; Local mode keybindings
+(map! :map typst-ts-mode-map
+      :leader
+      (:desc "Start preview mode" "m p" #'typst-preview-mode))
 
 ;; (after! dired
 ;;   (setq dired-omit-extensions
